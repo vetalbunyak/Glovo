@@ -6,20 +6,21 @@ import ithillel.ua.glovo.model.Product;
 import ithillel.ua.glovo.service.OrderService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.RequestBuilder;
-import org.springframework.test.web.servlet.ResultActions;
-import org.springframework.test.web.servlet.ResultMatcher;
 
 import java.util.ArrayList;
+import java.util.Optional;
 
-import static org.springframework.mock.http.server.reactive.MockServerHttpRequest.*;
-import static org.springframework.test.web.client.match.MockRestRequestMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -28,7 +29,7 @@ public class OrderControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @Autowired
+    @MockBean
     private OrderService orderService;
 
     @Autowired
@@ -39,40 +40,43 @@ public class OrderControllerTest {
     @BeforeEach
     public void setUp() {
         order = new Order();
+        order.setId(1L);
         order.setProducts(new ArrayList<>());
         order.setStatus("new");
-        orderService.addOrder(order);
+
+        Mockito.when(orderService.getOrderById(anyLong())).thenReturn(order);
+        Mockito.when(orderService.addOrder(any(Order.class))).thenReturn(order);
+        Mockito.when(orderService.updateOrder(anyLong(), any(Order.class))).thenReturn(order);
+        Mockito.when(orderService.addProductToOrder(anyLong(), any(Product.class))).thenReturn(order);
+        Mockito.when(orderService.removeProductFromOrder(anyLong(), anyLong())).thenReturn(order);
+        Mockito.when(orderService.deleteOrder(anyLong())).thenReturn(true);
     }
 
     @Test
     public void testGetOrder() throws Exception {
-        mockMvc.perform((RequestBuilder) get("/orders/{id}", order.getId()))
+        mockMvc.perform(get("/orders/{id}", 1L))
                 .andExpect(status().isOk())
-                .andExpect((ResultMatcher) jsonPath("$.status").value("new"));
+                .andExpect(jsonPath("$.status").value("new"));
     }
 
     @Test
     public void testAddOrder() throws Exception {
-        Order newOrder = new Order();
-        newOrder.setProducts(new ArrayList<>());
-        newOrder.setStatus("pending");
-
-        ResultActions pending = mockMvc.perform((RequestBuilder) post("/orders")
+        mockMvc.perform(post("/orders")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .contentType(MediaType.valueOf(objectMapper.writeValueAsString(newOrder))))
+                        .content(objectMapper.writeValueAsString(order)))
                 .andExpect(status().isOk())
-                .andExpect((ResultMatcher) jsonPath("$.status").value("pending"));
+                .andExpect(jsonPath("$.status").value("new"));
     }
 
     @Test
     public void testUpdateOrder() throws Exception {
         order.setStatus("completed");
 
-        ResultActions completed = mockMvc.perform((RequestBuilder) put("/orders/{id}", order.getId())
+        mockMvc.perform(put("/orders/{id}", 1L)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .contentType(MediaType.valueOf(objectMapper.writeValueAsString(order))))
+                        .content(objectMapper.writeValueAsString(order)))
                 .andExpect(status().isOk())
-                .andExpect((ResultMatcher) jsonPath("$.status").value("completed"));
+                .andExpect(jsonPath("$.status").value("completed"));
     }
 
     @Test
@@ -82,11 +86,11 @@ public class OrderControllerTest {
         product.setName("Product 1");
         product.setPrice(10.0);
 
-        mockMvc.perform((RequestBuilder) patch("/orders/{orderId}/products", order.getId())
+        mockMvc.perform(patch("/orders/{orderId}/products", 1L)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .contentType(MediaType.valueOf(objectMapper.writeValueAsString(product))))
+                        .content(objectMapper.writeValueAsString(product)))
                 .andExpect(status().isOk())
-                .andExpect((ResultMatcher) jsonPath("$.products[0].name").value("Product 1"));
+                .andExpect(jsonPath("$.products[0].name").value("Product 1"));
     }
 
     @Test
@@ -95,16 +99,17 @@ public class OrderControllerTest {
         product.setId(1L);
         product.setName("Product 1");
         product.setPrice(10.0);
-        orderService.addProductToOrder(order.getId(), product);
 
-        mockMvc.perform((RequestBuilder) delete("/orders/{orderId}/products/{productId}", order.getId(), product.getId()))
+        order.getProducts().add(product);
+
+        mockMvc.perform(delete("/orders/{orderId}/products/{productId}", 1L, 1L))
                 .andExpect(status().isOk())
-                .andExpect((ResultMatcher) jsonPath("$.products").isEmpty());
+                .andExpect(jsonPath("$.products").isEmpty());
     }
 
     @Test
     public void testDeleteOrder() throws Exception {
-        mockMvc.perform((RequestBuilder) delete("/orders/{id}", order.getId()))
+        mockMvc.perform(delete("/orders/{id}", 1L))
                 .andExpect(status().isOk());
     }
 }
