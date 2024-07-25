@@ -2,113 +2,103 @@ package ithillel.ua.glovo;// src/test/java/com/example/demo/service/OrderService
 
 import ithillel.ua.glovo.model.Order;
 import ithillel.ua.glovo.model.Product;
+import ithillel.ua.glovo.repositories.OrderRepository;
+import ithillel.ua.glovo.repositories.ProductRepository;
 import ithillel.ua.glovo.service.OrderServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 
 import java.util.ArrayList;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class OrderServiceTest {
+@DataJpaTest
+public class OrderServiceTest {
+
+    @Autowired
+    private OrderRepository orderRepository;
+
+    @Autowired
+    private ProductRepository productRepository;
 
     private OrderServiceImpl orderService;
 
     @BeforeEach
     void setUp() {
         orderService = new OrderServiceImpl();
+        orderService.orderRepository = orderRepository;
+        orderService.productRepository = productRepository;
     }
 
     @Test
-    void testAddOrder() {
+    void addOrder() {
         Order order = new Order();
-        order.setProducts(new ArrayList<>());
-        order.setStatus("new");
-
-        Order addedOrder = orderService.addOrder(order);
-
-        assertNotNull(addedOrder.getId());
-        assertEquals("new", addedOrder.getStatus());
+        order.setStatus("NEW");
+        Order savedOrder = orderService.addOrder(order);
+        assertNotNull(savedOrder);
+        assertEquals("NEW", savedOrder.getStatus());
     }
 
     @Test
-    void testGetOrderById() {
+    void getOrderById() {
         Order order = new Order();
-        order.setProducts(new ArrayList<>());
-        order.setStatus("new");
-
-        Order addedOrder = orderService.addOrder(order);
-
-        Order fetchedOrder = orderService.getOrderById(addedOrder.getId());
-
-        assertNotNull(fetchedOrder);
-        assertEquals(addedOrder.getId(), fetchedOrder.getId());
+        order.setStatus("NEW");
+        Order savedOrder = orderRepository.save(order);
+        Order foundOrder = orderService.getOrderById(savedOrder.getId());
+        assertNotNull(foundOrder);
+        assertEquals("NEW", foundOrder.getStatus());
     }
 
     @Test
-    void testUpdateOrder() {
+    void updateOrder() {
         Order order = new Order();
-        order.setProducts(new ArrayList<>());
-        order.setStatus("new");
-
-        Order addedOrder = orderService.addOrder(order);
-
-        addedOrder.setStatus("completed");
-        Order updatedOrder = orderService.updateOrder(addedOrder.getId(), addedOrder);
-
-        assertEquals("completed", updatedOrder.getStatus());
+        order.setStatus("NEW");
+        Order savedOrder = orderRepository.save(order);
+        savedOrder.setStatus("UPDATED");
+        Order updatedOrder = orderService.updateOrder(savedOrder.getId(), savedOrder);
+        assertNotNull(updatedOrder);
+        assertEquals("UPDATED", updatedOrder.getStatus());
     }
 
     @Test
-    void testAddProductToOrder() {
+    void addProductToOrder() {
         Order order = new Order();
-        order.setProducts(new ArrayList<>());
-        order.setStatus("new");
-
-        Order addedOrder = orderService.addOrder(order);
-
+        order.setStatus("NEW");
+        Order savedOrder = orderRepository.save(order);
         Product product = new Product();
-        product.setId(1L);
         product.setName("Product 1");
         product.setPrice(10.0);
-
-        Order updatedOrder = orderService.addProductToOrder(addedOrder.getId(), product);
-
-        assertFalse(updatedOrder.getProducts().isEmpty());
-        assertEquals("Product 1", updatedOrder.getProducts().get(0).getName());
+        Product savedProduct = productRepository.save(product);
+        Order updatedOrder = orderService.addProductToOrder(savedOrder.getId(), savedProduct);
+        assertNotNull(updatedOrder);
+        assertEquals(1, updatedOrder.getProducts().size());
     }
 
     @Test
-    void testRemoveProductFromOrder() {
+    void removeProductFromOrder() {
         Order order = new Order();
-        order.setProducts(new ArrayList<>());
-        order.setStatus("new");
-
+        order.setStatus("NEW");
         Product product = new Product();
-        product.setId(1L);
         product.setName("Product 1");
         product.setPrice(10.0);
-
-        order.getProducts().add(product);
-
-        Order addedOrder = orderService.addOrder(order);
-
-        Order updatedOrder = orderService.removeProductFromOrder(addedOrder.getId(), product.getId());
-
-        assertTrue(updatedOrder.getProducts().isEmpty());
+        ArrayList<Product> products = new ArrayList<>();
+        products.add(product);
+        order.setProducts(products);
+        Order savedOrder = orderRepository.save(order);
+        Order updatedOrder = orderService.removeProductFromOrder(savedOrder.getId(), product.getId());
+        assertNotNull(updatedOrder);
+        assertEquals(0, updatedOrder.getProducts().size());
     }
 
     @Test
-    void testDeleteOrder() {
+    void deleteOrder() {
         Order order = new Order();
-        order.setProducts(new ArrayList<>());
-        order.setStatus("new");
-
-        Order addedOrder = orderService.addOrder(order);
-
-        boolean deleted = orderService.deleteOrder(addedOrder.getId());
-
-        assertTrue(deleted);
-        assertNull(orderService.getOrderById(addedOrder.getId()));
+        order.setStatus("NEW");
+        Order savedOrder = orderRepository.save(order);
+        boolean isDeleted = orderService.deleteOrder(savedOrder.getId());
+        assertTrue(isDeleted);
+        assertFalse(orderRepository.existsById(savedOrder.getId()));
     }
 }
