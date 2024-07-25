@@ -9,13 +9,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/orders")
+@RequestMapping("orders")
 public class OrderController {
 
     @Autowired
     private OrderService orderService;
 
-    @GetMapping("/{id}")
+    @GetMapping("{id}")
     public ResponseEntity<Order> getOrder(@PathVariable Long id) {
         Order order = orderService.getOrderById(id);
         if (order != null) {
@@ -26,11 +26,15 @@ public class OrderController {
 
     @PostMapping
     public ResponseEntity<Order> addOrder(@RequestBody Order order) {
-        Order newOrder = orderService.addOrder(order);
-        return new ResponseEntity<>(newOrder, HttpStatus.CREATED);
+        try {
+            Order newOrder = orderService.addOrder(order);
+            return new ResponseEntity<>(newOrder, HttpStatus.CREATED);
+        } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
     }
 
-    @PutMapping("/{id}")
+    @PutMapping("{id}")
     public ResponseEntity<Order> updateOrder(@PathVariable Long id, @RequestBody Order order) {
         Order updatedOrder = orderService.updateOrder(id, order);
         if (updatedOrder != null) {
@@ -39,7 +43,7 @@ public class OrderController {
         return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
-    @PatchMapping("/{orderId}/products")
+    @PatchMapping("{orderId}products")
     public ResponseEntity<Order> addProductToOrder(@PathVariable Long orderId, @RequestBody Product product) {
         Order updatedOrder = orderService.addProductToOrder(orderId, product);
         if (updatedOrder != null) {
@@ -48,7 +52,7 @@ public class OrderController {
         return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
-    @DeleteMapping("/{orderId}/products/{productId}")
+    @DeleteMapping("{orderId}products{productId}")
     public ResponseEntity<Order> removeProductFromOrder(@PathVariable Long orderId, @PathVariable Long productId) {
         Order updatedOrder = orderService.removeProductFromOrder(orderId, productId);
         if (updatedOrder != null) {
@@ -57,7 +61,7 @@ public class OrderController {
         return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("{id}")
     public ResponseEntity<Void> deleteOrder(@PathVariable Long id) {
         boolean isDeleted = orderService.deleteOrder(id);
         if (isDeleted) {
@@ -66,4 +70,3 @@ public class OrderController {
         return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 }
-
